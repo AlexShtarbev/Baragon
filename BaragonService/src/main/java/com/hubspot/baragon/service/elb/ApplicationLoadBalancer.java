@@ -323,27 +323,29 @@ public class ApplicationLoadBalancer extends ElasticLoadBalancer {
 
       LOG.debug("Syncing ALB Target Groups {}", albSources);
 
-      Map<TrafficSource, TargetGroup> targetGroups = getTargetGroups(baragonGroup, albSources);
-      LOG.debug("Found target groups for traffic sources {}", targetGroups);
-      for (Entry<TrafficSource, TargetGroup> targetGroupEntry : targetGroups.entrySet()) {
-        try {
-          TargetGroup targetGroup = targetGroupEntry.getValue();
-          TrafficSource trafficSource = targetGroupEntry.getKey();
-          Collection<TargetDescription> targets = targetsInTargetGroup(targetGroup);
+      if (!albSources.isEmpty()) {
+        Map<TrafficSource, TargetGroup> targetGroups = getTargetGroups(baragonGroup, albSources);
+        LOG.debug("Found target groups for traffic sources {}", targetGroups);
+        for (Entry<TrafficSource, TargetGroup> targetGroupEntry : targetGroups.entrySet()) {
+          try {
+            TargetGroup targetGroup = targetGroupEntry.getValue();
+            TrafficSource trafficSource = targetGroupEntry.getKey();
+            Collection<TargetDescription> targets = targetsInTargetGroup(targetGroup);
 
-          LOG.debug("Registering new instances for target group {}", trafficSource.getName());
-          guaranteeRegistered(targetGroup, targets, baragonAgents, elbsForBaragonGroup);
+            LOG.debug("Registering new instances for target group {}", trafficSource.getName());
+            guaranteeRegistered(targetGroup, targets, baragonAgents, elbsForBaragonGroup);
 
-          if (configuration.isPresent() && configuration.get().isDeregisterEnabled()) {
-            LOG.debug("De-registering old instances for target group {}", trafficSource.getName());
-            deregisterRemovableTargets(baragonGroup, targetGroup, baragonAgents, targets);
+            if (configuration.isPresent() && configuration.get().isDeregisterEnabled()) {
+              LOG.debug("De-registering old instances for target group {}", trafficSource.getName());
+              deregisterRemovableTargets(baragonGroup, targetGroup, baragonAgents, targets);
+            }
+          } catch (AmazonClientException exn) {
+            LOG.error("Could not retrieve elb information due to ELB client error", exn);
+            exceptionNotifier.notify(exn, ImmutableMap.of("baragonGroup", baragonGroup.toString()));
+          } catch (Exception exn) {
+            LOG.error("Could not process ELB sync", exn);
+            exceptionNotifier.notify(exn, ImmutableMap.of("groups", baragonGroup.toString()));
           }
-        } catch (AmazonClientException exn) {
-          LOG.error("Could not retrieve elb information due to ELB client error", exn);
-          exceptionNotifier.notify(exn, ImmutableMap.of("baragonGroup", baragonGroup.toString()));
-        } catch (Exception exn) {
-          LOG.error("Could not process ELB sync", exn);
-          exceptionNotifier.notify(exn, ImmutableMap.of("groups", baragonGroup.toString()));
         }
       }
     }
