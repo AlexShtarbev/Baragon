@@ -1,14 +1,10 @@
 package com.hubspot.baragon.service.managers;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.slf4j.Logger;
@@ -31,12 +27,10 @@ import com.hubspot.baragon.models.BaragonGroup;
 import com.hubspot.baragon.models.BaragonRequest;
 import com.hubspot.baragon.models.BaragonResponse;
 import com.hubspot.baragon.models.BaragonService;
-import com.hubspot.baragon.models.BaragonServiceState;
 import com.hubspot.baragon.models.InternalRequestStates;
 import com.hubspot.baragon.models.InternalStatesMap;
 import com.hubspot.baragon.models.QueuedRequestId;
 import com.hubspot.baragon.models.RequestAction;
-import com.hubspot.baragon.models.UpstreamInfo;
 import com.hubspot.baragon.service.config.BaragonConfiguration;
 
 @Singleton
@@ -253,10 +247,6 @@ public class RequestManager {
 
     if (request.getAction().isPresent() && request.getAction().equals(Optional.of(RequestAction.REVERT))) {
       throw new InvalidRequestActionException("The REVERT action may only be used internally by Baragon, you may specify UPDATE, DELETE, RELOAD, or leave the action blank(UPDATE)");
-    }
-
-    if (request.isNoDuplicateUpstreams()) {
-      validateNoDuplicateUpstreams(request.getAddUpstreams());
     }
 
     try {
